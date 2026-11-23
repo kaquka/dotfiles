@@ -1,0 +1,65 @@
+# Theme — escala de grises (monocromático)
+background = #0d0d0d
+foreground = #d0d0d0
+cursor-color = #ffffff
+cursor-text = #0d0d0d
+selection-background = #3a3a3a
+selection-foreground = #f0f0f0
+
+# Paleta ANSI en grises (0-7 normal, 8-15 bright)
+palette = 0=#1a1a1a
+palette = 1=#8a8a8a
+palette = 2=#a0a0a0
+palette = 3=#b5b5b5
+palette = 4=#909090
+palette = 5=#a8a8a8
+palette = 6=#b0b0b0
+palette = 7=#d0d0d0
+palette = 8=#4d4d4d
+palette = 9=#bdbdbd
+palette = 10=#c8c8c8
+palette = 11=#e0e0e0
+palette = 12=#b8b8b8
+palette = 13=#d4d4d4
+palette = 14=#dcdcdc
+palette = 15=#ffffff
+
+# Glass effect (macOS)
+background-opacity = 0.88
+#background-blur = macos-glass-clear
+background-blur = 10
+background-opacity-cells = false
+
+
+# Font
+font-size = 17
+font-thicken = false
+font-thicken-strength = 0
+font-family = "JetBrainsMono Nerd Font"
+
+adjust-cell-height = 1
+
+# Cursor
+cursor-style = block
+cursor-style-blink = false
+cursor-opacity = 0.9
+custom-shader = shaders/cursor.glsl
+
+
+# UI behavior
+mouse-hide-while-typing = true
+#macos-option-as-alt = true
+
+# Window behavior
+window-save-state = always
+window-padding-x = 4,4
+window-padding-y = 6,6
+#window-decoration = false
+
+# Performace
+alpha-blending = native
+window-vsync = true
+
+# Shift+Enter -> nueva línea en CLIs (Claude Code, OpenCode, etc.)
+# Envía un LF crudo: pasa limpio por tmux sin ambigüedad de ESC.
+keybind = shift+enter=text:\n

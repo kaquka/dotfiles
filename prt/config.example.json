@@ -1,0 +1,21 @@
+{
+  "repos": {
+    "acme-api": "api",
+    "acme-web": "web"
+  },
+  "me_names": ["Tu Nombre", "tu-usuario-github"],
+  "alias": {
+    "acme-billing-svc": "billing"
+  },
+  "pins": {
+    "acme-api#123": "billing"
+  },
+  "hidden": [],
+  "notes": ["recordatorio libre que aparece en el panel"],
+  "linear": {
+    "enabled": false,
+    "workspace": "tu-workspace",
+    "teams": ["ENG"]
+  },
+  "my_services": ["acme-api", "acme-billing-svc"]
+}

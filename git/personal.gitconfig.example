@@ -1,0 +1,4 @@
+# Copia a ~/.config/git/personal.gitconfig (no versionado)
+[user]
+  name = Tu Nombre
+  email = tu-correo@example.com

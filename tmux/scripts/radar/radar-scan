@@ -1,0 +1,4 @@
+#!/bin/sh
+# Llamado desde status-format con #(): no debe imprimir nada.
+/usr/bin/python3 "$HOME/.config/tmux/scripts/radar/radar.py" scan "$@" >/dev/null 2>&1
+exit 0

@@ -1,0 +1,5 @@
+# Copia a ~/.config/git/work.gitconfig (no versionado).
+# Se aplica a los repos bajo ~/dev/work/ (ver includeIf en config).
+[user]
+  name = Tu Nombre
+  email = tu-correo@empresa.com

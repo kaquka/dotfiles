@@ -1,0 +1,14 @@
+# ~/.config/git/common.gitconfig
+[core]
+  editor = nvim
+
+[pull]
+  rebase = false
+
+[init]
+  defaultBranch = main
+
+# Identidad por defecto (no versionada). Ver personal.gitconfig.example.
+# Las identidades por carpeta (~/dev/work, ~/dev/personal) se aplican en config.
+[include]
+  path = personal.gitconfig

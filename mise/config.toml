@@ -1,0 +1,31 @@
+# ~/.config/mise/config.toml
+#
+# Config global de mise (https://mise.jdx.dev/configuration.html).
+# Las versiones por proyecto van en un .mise.toml dentro de la carpeta del repo.
+#
+# Para instalar/activar todo lo definido aquí:
+#   mise install
+#
+# Para listar runtimes disponibles:
+#   mise ls-remote node
+
+[tools]
+# Descomenta lo que uses. Cuando descomentes, corre `mise install`.
+# node = "lts"
+# python = "3.12"
+# go = "latest"
+# rust = "stable"
+# bun = "latest"
+# pnpm = "latest"
+# deno = "latest"
+# terraform = "latest"
+
+[settings]
+# Confirmar al activar archivos .mise.toml de proyectos no confiados.
+# trusted_config_paths = ["~/dev"]
+
+# Activar legacy version files (.nvmrc, .python-version, .ruby-version, etc.)
+legacy_version_file = true
+
+# Mostrar progreso de descargas
+verbose = false

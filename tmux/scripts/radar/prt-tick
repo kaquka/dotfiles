@@ -1,0 +1,14 @@
+#!/bin/sh
+# Llamado desde la tercera línea de estado con #(). Imprime la antigüedad del cache de PRs y,
+# si pasaron más de 5 min desde el último intento, lanza `prt.py fetch` en segundo plano.
+C="$HOME/.cache/prt"
+now=$(date +%s)
+a=$(stat -f %m "$C/last_attempt" 2>/dev/null || echo 0)
+if [ $((now - a)) -gt 300 ] && [ ! -d "$C/fetch.lock" ]; then
+  (/usr/bin/python3 "$HOME/.config/tmux/scripts/radar/prt.py" fetch >/dev/null 2>&1 &)
+fi
+m=$(stat -f %m "$C/state.json" 2>/dev/null || echo 0)
+[ "$m" = 0 ] && { printf '#[fg=#777777]PRs: cargando'; exit 0; }
+age=$((now - m))
+if [ $age -lt 60 ]; then t="ahora"; elif [ $age -lt 3600 ]; then t="hace $((age / 60)) min"; else t="hace $((age / 3600)) h"; fi
+if [ $age -gt 900 ]; then printf '#[fg=#ff6464]%s' "$t"; else printf '#[fg=#4a4a4a]%s' "$t"; fi

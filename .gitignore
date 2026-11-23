@@ -1,0 +1,57 @@
+# Track only curated dotfiles from this config root.
+*
+!.gitignore
+!README.md
+!LICENSE
+!Makefile
+!Brewfile
+!fish/
+!fish/**
+!gh/
+!gh/config.example.yml
+!ghostty/
+!ghostty/**
+!git/
+!git/**
+!mise/
+!mise/**
+!nvim/
+!nvim/**
+!prt/
+!prt/**
+!sesh/
+!sesh/sesh.example.toml
+!scripts/
+!scripts/**
+!tmux/
+!tmux/**
+!claude/
+!claude/**
+!starship.toml
+
+# Machine-local / private (cada uno trae su .example versionado)
+fish/local.fish
+git/personal.gitconfig
+git/work.gitconfig
+scripts/dev-dirs.local
+
+# Específico de trabajo, nunca se publica
+fish/conf.d/kiro-*.fish
+fish/functions/kt.fish
+fish/functions/tunnel.fish
+scripts/install-opencode-deps.sh
+
+# Generated or machine-local files
+.DS_Store
+*.bak
+*.bak-*
+*.backup*
+__pycache__/
+*.pyc
+fish/fish_variables
+fish/completions/
+fish/conf.d/00_fig_pre.fish
+fish/conf.d/99_fig_post.fish
+tmux/plugins/
+nvim/.git
+nvim/.gitignore

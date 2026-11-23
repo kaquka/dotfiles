@@ -1,0 +1,43 @@
+#:schema https://github.com/joshmedeski/sesh/raw/main/sesh.schema.json
+# Copia a ~/.config/sesh/sesh.toml (no versionado) y define tus proyectos.
+
+cache = false
+strict_mode = true
+separator_aware = true
+dir_length = 2
+sort_order = ["config", "tmux", "zoxide"]
+
+[default_session]
+
+# ---------- General ----------
+[[session]]
+name = "main"
+path = "~"
+
+[[session]]
+name = "dotfiles"
+path = "~/dev/personal/dotfiles"
+windows = ["ai", "run"]
+
+# ---------- Proyectos ----------
+# Cada proyecto abre una ventana con Claude Code y otra libre para correr cosas.
+[[session]]
+name = "my-api"
+path = "~/dev/work/my-api"
+windows = ["ai", "run"]
+
+[[session]]
+name = "my-web"
+path = "~/dev/work/my-web"
+windows = ["ai", "run"]
+
+# ---------- Ventanas ----------
+# ai: Claude Code en la raíz del proyecto
+[[window]]
+name = "ai"
+startup_script = "claude"
+
+# run: shell libre para mise run / docker / pnpm
+[[window]]
+name = "run"
+startup_script = ""

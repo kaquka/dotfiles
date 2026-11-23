@@ -1,0 +1,24 @@
+**/.claude/settings.local.json
+
+# macOS
+.DS_Store
+
+# mise local environment config
+mise.toml
+mise.dev.toml
+mise.local.toml
+mise.prod.toml
+
+# app env / secrets
+.env
+**/.env
+*.env
+
+# local migrations folder
+migrations/
+
+# local analysis docs
+**/analisis/
+
+# local APK builds
+apks/

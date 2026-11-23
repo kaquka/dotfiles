@@ -1,0 +1,19 @@
+[include]
+  path = ~/.config/git/common.gitconfig
+
+# Trailing slash => git appends `**`, so this matches the repo's gitdir AND any
+# linked-worktree gitdir under it (.git/worktrees/<name>), even when the worktree
+# itself is checked out elsewhere (e.g. a scratchpad). The old `**/.git` pattern
+# only matched gitdirs ending in `/.git`, so worktrees fell back to the personal
+# default in common.gitconfig.
+[includeIf "gitdir:~/dev/work/"]
+  path = ~/.config/git/work.gitconfig
+
+[includeIf "gitdir:~/dev/personal/"]
+  path = ~/.config/git/personal.gitconfig
+[credential "https://github.com"]
+	helper = 
+	helper = !/opt/homebrew/bin/gh auth git-credential
+[credential "https://gist.github.com"]
+	helper = 
+	helper = !/opt/homebrew/bin/gh auth git-credential
