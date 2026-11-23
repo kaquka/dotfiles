@@ -9,3 +9,10 @@
 # Atajos a carpetas de proyectos
 # alias work="cd ~/dev/work"
 # alias notes="cd ~/notes"
+
+# wm: una sesión de tmux por repo + worktrees de workmux (fish/functions/wm.fish)
+# set -g WM_ROOT ~/dev/work/acme                # carpeta con tus repos (default ~/dev/work)
+# set -g WM_HUB acme                            # sesión para preguntas sin rama (default hub)
+# set -g WM_SERVICES servicios                  # sesión para servidores locales
+# set -g WM_ALIASES api=acme-api web=acme-web   # alias=carpeta
+# set -g WM_SESSIONS acme-web=web               # carpeta=nombre de sesión

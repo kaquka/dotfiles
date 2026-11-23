@@ -30,7 +30,7 @@ mkdir -p "${CONFIG_DIR}"
 echo "Linking config directories into ${CONFIG_DIR}..."
 
 # Directorios completos de configuración
-for dir in fish gh ghostty git mise nvim opencode sesh tmux; do
+for dir in fish gh ghostty git harness mise nvim opencode sesh tmux; do
   if [ -d "${ROOT}/${dir}" ]; then
     link_file "${ROOT}/${dir}" "${CONFIG_DIR}/${dir}"
   fi

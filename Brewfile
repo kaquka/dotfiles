@@ -10,6 +10,7 @@ brew "fish"
 brew "neovim"
 brew "tmux"
 brew "sesh"
+brew "workmux"
 brew "starship"
 brew "fastfetch"
 

@@ -50,6 +50,8 @@ seed_local_files() {
   seed_local "${ROOT}/gh/config.example.yml" "${ROOT}/gh/config.yml"
   seed_local "${ROOT}/sesh/sesh.example.toml" "${ROOT}/sesh/sesh.toml"
   seed_local "${ROOT}/prt/config.example.json" "${HOME}/.config/prt/config.json"
+  seed_local "${ROOT}/harness/map.example.conf" "${ROOT}/harness/map.conf"
+  seed_local "${ROOT}/workmux/config.example.yaml" "${HOME}/.config/workmux/config.yaml"
 }
 
 run_script() {

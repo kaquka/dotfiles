@@ -1,0 +1,74 @@
+# workmux — config global
+# Modelo: una sesión de tmux por repo; cada worktree = una ventana con su agente.
+# Las sesiones las crea la función fish `wm` (fish/functions/wm.fish).
+# Copia este archivo a ~/.config/workmux/config.yaml (bootstrap lo hace si no existe).
+
+nerdfont: true
+agent: claude
+mode: window
+window_prefix: ""                 # la sesión ya es el repo; la ventana solo lleva el nombre de la tarea
+worktree_dir: ~/dev/_wt/{project}   # dónde caen los worktrees; ajusta a tu árbol de carpetas
+merge_keep: false
+confirm_unmerged_removal: true
+
+# Ventana por defecto: agente arriba, shell abajo
+panes:
+  - command: <agent>
+    focus: true
+  - split: horizontal
+    size: 12
+
+# Hooks en fish no; bash basta para los post_create
+hook_shell: ["/bin/bash", "-c"]
+
+# Paleta monocromática a juego con Ghostty (~/.config/ghostty/config)
+theme:
+  scheme: graphite-code
+  mode: dark
+  custom:
+    current_row_bg: "#1a1a1a"
+    highlight_row_bg: "#262626"
+    current_worktree_fg: "#ffffff"
+    text: "#d0d0d0"
+    dimmed: "#4d4d4d"
+    border: "#3a3a3a"
+    help_border: "#3a3a3a"
+    help_muted: "#8a8a8a"
+    header: "#e0e0e0"
+    keycap: "#b8b8b8"
+    info: "#e8a33d"      # ámbar → trabajando (mismo que el radar)
+    accent: "#ff6464"    # rojo → necesita una decisión (esperando)
+    success: "#62c48a"   # verde → terminó
+    warning: "#d19a66"
+    danger: "#be5046"
+
+# Mismos glifos que usaban las pestañas del radar (el conteo del encabezado los usa)
+status_icons:
+  working: "●"
+  waiting: "◆"
+  done: "◉"
+
+sidebar:
+  position: left
+  layout: tiles
+  width: 34          # más ancho para leer el tema de cada conversación
+  group_by: project  # una sección por repo (tecla t alterna a por sesión)
+  sort: window       # orden estable dentro de cada repo
+  agent_icons:
+    claude:  { icon: "✳", color: "#d97757" }   # naranja Claude
+    pi:      { icon: "π", color: "#8fae8b" }   # salvia
+    # workmux solo pinta iconos de agentes que conoce: el radar registra los servidores
+    # como "grok" (arriba) y "copilot" (caído), agentes que no se usan aquí.
+    grok:    { icon: "▲", color: "#5fb3dc" }   # servidor arriba
+    copilot: { icon: "✗", color: "#ff6464" }   # servidor caído
+  templates:
+    grouped:
+      # Encabezado de repo: banda con fondo + conteo por estado (◆ espera ◉ terminó ● trabajando ○ quieto)
+      header: "#[bg=#2e2e2e,fg=#ffffff,bold] 󰉋 {group} {fill} #[default]#[bg=#2e2e2e]{group_status} #[fg=#6a6a6a]{group_count} "
+      tiles:
+        # 1) título de la conversación (antes iba abajo)
+        - "{agent_icon} #[fg=#e0e0e0]{pane_title}#[default] {fill} #[fg=#8a8a8a]{elapsed}"
+        # 2) sesión:ventana (a dónde saltar) + PR
+        - "#[fg=#6a6a6a]{session}:{window_index} {pane_suffix}#[default] {fill} #[fg=#b8b8b8]{pr_number} {pr_checks}"
+        # 3) estado en texto (con su color) + diff de la rama
+        - "{status_label} {fill} #[fg=#8a8a8a]{git_stats}"

@@ -7,6 +7,8 @@ TMUX_BIN="/opt/homebrew/bin/tmux"
 [ -x "$TMUX_BIN" ] || exit 0
 
 target="$($TMUX_BIN display-message -p '#{session_name}:#{window_index}' 2>/dev/null)" || exit 0
+# ventanas de workmux: su nombre lo controla workmux
+[ -n "$($TMUX_BIN display-message -p '#{@workmux_token}' 2>/dev/null)" ] && exit 0
 current_name="$($TMUX_BIN display-message -p '#{window_name}' 2>/dev/null)" || exit 0
 client_name="$($TMUX_BIN display-message -p '#{client_name}' 2>/dev/null)"
 title_override="${1:-}"

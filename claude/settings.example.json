@@ -22,6 +22,15 @@
             "timeout": 5
           }
         ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "workmux set-window-status working",
+            "timeout": 5
+          }
+        ]
       }
     ],
     "PreToolUse": [
@@ -44,6 +53,15 @@
             "timeout": 5
           }
         ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "workmux set-window-status working",
+            "timeout": 5
+          }
+        ]
       }
     ],
     "Notification": [
@@ -55,6 +73,16 @@
             "timeout": 5
           }
         ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "workmux set-window-status waiting",
+            "timeout": 5
+          }
+        ],
+        "matcher": "permission_prompt|elicitation_dialog"
       }
     ],
     "Stop": [
@@ -63,6 +91,15 @@
           {
             "type": "command",
             "command": "~/.config/tmux/scripts/radar/claude-state.sh stop",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "workmux set-window-status done",
             "timeout": 5
           }
         ]
@@ -77,6 +114,18 @@
             "timeout": 5
           }
         ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "workmux register-agent",
+            "timeout": 5
+          }
+        ],
+        "matcher": "startup|resume|clear|fork"
       }
     ]
   }

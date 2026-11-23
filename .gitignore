@@ -27,6 +27,11 @@
 !tmux/**
 !claude/
 !claude/**
+!workmux/
+!workmux/config.example.yaml
+!harness/
+!harness/harness-for
+!harness/map.example.conf
 !starship.toml
 
 # Machine-local / private (cada uno trae su .example versionado)
@@ -34,6 +39,7 @@ fish/local.fish
 git/personal.gitconfig
 git/work.gitconfig
 scripts/dev-dirs.local
+harness/map.conf
 
 # Específico de trabajo, nunca se publica
 fish/conf.d/kiro-*.fish

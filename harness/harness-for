@@ -1,0 +1,14 @@
+#!/bin/sh
+# Uso: harness-for [path]  → imprime el arnés para ese path (default: $PWD)
+path="${1:-$PWD}"
+map="$HOME/.config/harness/map.conf"
+best=""; best_len=-1; default="claude"
+while read -r dir cmd; do
+  case "$dir" in ""|\#*) continue ;; esac
+  if [ "$dir" = "*" ]; then default="$cmd"; continue; fi
+  dir=$(printf '%s' "$dir" | sed "s|^~|$HOME|"); dir="${dir%/}"
+  case "$path/" in
+    "$dir"/*) len=${#dir}; [ "$len" -gt "$best_len" ] && { best="$cmd"; best_len=$len; } ;;
+  esac
+done < "$map"
+printf '%s\n' "${best:-$default}"

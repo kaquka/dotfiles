@@ -18,6 +18,12 @@ basename_or_home() {
   esac
 }
 
+# El sidebar de workmux no debe renombrar la ventana: conserva el nombre actual
+if [ "$current_cmd" = "workmux" ]; then
+  printf '%s' "$window_name"
+  exit 0
+fi
+
 token="$(first_token "$title")"
 
 if [ -z "$token" ] && [ -n "$current_cmd" ]; then
@@ -39,6 +45,17 @@ if [ "$title_source" = "current" ]; then
 fi
 
 case "$token" in
+  :[0-9]*)
+    # servidor marcado por el radar (título ":puerto · tarea"): icono + carpeta
+    printf '%s %s' "▲" "$(basename_or_home "$path")"
+    ;;
+  "✳"|"✻"|"✽"|"✶"|"✢"|"·"|Claude*)
+    # Claude Code: icono + carpeta, para distinguir ventanas (y tarjetas del sidebar de workmux)
+    printf '%s %s' "✳" "$(basename_or_home "$path")"
+    ;;
+  "π"|pi)
+    printf '%s %s' "π" "$(basename_or_home "$path")"
+    ;;
   OC*|OpenCode*|opencode*)
     printf '%s' " OpenCode"
     ;;

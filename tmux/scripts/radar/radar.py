@@ -50,7 +50,7 @@ FIELDS = [
     "pane_current_path", "pane_width", "window_width", "window_panes", "history_size",
     "pane-border-status",
     "@claude_state", "@claude_doing", "@claude_msg", "@claude_ts", "@radar_state", "@radar_since",
-    "@srv_last_port", "@radar_unread", "@radar_sidebar",
+    "@srv_last_port", "@radar_unread", "@radar_sidebar", "@srv_task",
 ]
 SIDEBARS = []  # panes de la barra lateral (se excluyen del radar)
 STATE = os.path.join(CACHE, "state.json")
@@ -305,7 +305,7 @@ def collect(with_screen=False):
             border_status=p["pane-border-status"],
             prev=p["@radar_state"], since=float(p["@radar_since"] or 0) or None,
             last_port=p["@srv_last_port"], topic="", doing="", msg="", port=None, ports=[],
-            healthy=None, uptime=None, task="", tail=[], kind="other", state=None,
+            healthy=None, uptime=None, task="", tail=[], kind="other", state=None, srv_task=p["@srv_task"],
         )
         if is_claude:
             d["kind"] = "claude"
@@ -351,6 +351,8 @@ def collect(with_screen=False):
             ports = sorted({pt for x in desc for pt in listen.get(x, [])})
             if p["pane_title"].startswith("mise run "):
                 d["task"] = p["pane_title"][9:].split()[0]
+            elif p["@srv_task"]:
+                d["task"] = p["@srv_task"]  # el título ya es el nuestro (▲ :puerto · tarea)
             else:
                 d["task"] = p["pane_current_command"]
             if ports:
@@ -359,6 +361,8 @@ def collect(with_screen=False):
                 lp = [x for x in desc if ports[0] in listen.get(x, [])]
                 if lp and lp[0] in procs:
                     d["uptime"] = etime_secs(procs[lp[0]][1])
+                    if d["task"] in SHELLS:
+                        d["task"] = os.path.basename(procs[lp[0]][2])  # el shell solo envuelve: nombra el proceso que escucha
             elif p["@srv_last_port"] and p["pane_current_command"] not in SHELLS:
                 d["kind"], d["state"], d["port"] = "down", "down", int(p["@srv_last_port"])
             if with_screen and d["kind"] in ("srv", "down"):
@@ -515,6 +519,88 @@ def pane_bar(d):
     return "#[bg=%s,fg=%s,bold]%s#[bg=%s,fg=%s,nobold]%s#[default]" % (
         hs[0], hs[1], head, rs[0], rs[1], fit(rest, w - width(head)))
 
+# ---------------------------------------------------------------- workmux
+# Registra en el panel de workmux lo que sus hooks no ven:
+#   - servidores (▲ arriba = sin estado, ✗ caído = "waiting", rojo)
+#   - Claude abiertos antes de instalar los hooks de workmux
+# Usa el formato interno de ~/.local/state/workmux/agents/*.json (no es API pública):
+# workmux descarta un registro si el comando del pane deja de coincidir con "command".
+# Solo se tocan registros creados aquí (lista en wm-owned.json).
+WM_AGENTS = os.path.expanduser("~/.local/state/workmux/agents")
+WM_OWNED = os.path.join(CACHE, "wm-owned.json")
+WM_STATUS = {"waiting": "waiting", "working": "working", "done": "done", "down": "waiting"}
+
+
+def srv_title(d):
+    if d["kind"] == "srv":
+        mark = "" if d["healthy"] is not False else " · no responde"
+        return ":%s · %s%s" % (d["port"], d["task"] or d["cmd"], mark)
+    return ":%s · %s caído" % (d["port"], d["task"] or d["cmd"])
+
+
+def wm_sync(panes):
+    if not os.path.isdir(WM_AGENTS):
+        return
+    info = tmux("display", "-p", "#{socket_path}\t#{start_time}:#{pid}").strip().split("\t")
+    if len(info) != 2:
+        return
+    sock, boot = info
+    enc = lambda pid: "tmux__%s__%s.json" % (sock.replace("/", "%2F"), pid.replace("%", "%25"))
+    try:
+        owned = json.load(open(WM_OWNED))
+    except Exception:
+        owned = {}
+    keep, changed = {}, False
+    for d in panes:
+        f = os.path.join(WM_AGENTS, enc(d["id"]))
+        mine = d["id"] in owned
+        if d["kind"] in ("srv", "down"):
+            # workmux solo pinta iconos de agentes conocidos: grok/copilot = ▲ azul / ✗ rojo (agent_icons)
+            kind = "grok" if d["kind"] == "srv" else "copilot"
+            status, title = WM_STATUS.get(d["state"]), srv_title(d)
+        elif d["kind"] == "claude":
+            if not mine and os.path.exists(f):
+                continue  # lo maneja workmux con sus hooks
+            if mine:
+                try:
+                    if json.load(open(f)).get("agent_session_id"):
+                        continue  # ya llegaron los hooks de workmux: se lo cedemos
+                except Exception:
+                    pass
+            kind, status, title = "claude", WM_STATUS.get(d["state"]), d["title"]
+        else:
+            continue
+        if not mine and os.path.exists(f):
+            continue
+        sig = "%s|%s|%s|%s" % (kind, status, title, d["cmd"])
+        keep[d["id"]] = sig
+        if owned.get(d["id"]) == sig and os.path.exists(f):
+            continue
+        ts = int(d["since"] or time.time())
+        rec = {
+            "pane_key": {"backend": "tmux", "instance": sock, "pane_id": d["id"]},
+            "workdir": d["path"], "status": status, "status_ts": ts, "activity_ts": int(time.time()),
+            "pane_title": title, "pane_pid": int(tmux("display", "-p", "-t", d["id"], "#{pane_pid}").strip() or 0),
+            "command": d["cmd"], "updated_ts": int(time.time()), "window_name": d["window_name"],
+            "session_name": d["session"], "boot_id": boot, "agent_kind": kind,
+        }
+        tmp = f + ".radar.tmp"
+        with open(tmp, "w") as fh:
+            json.dump(rec, fh)
+        os.replace(tmp, f)
+        changed = True
+    for pid in set(owned) - set(keep):
+        try:
+            os.remove(os.path.join(WM_AGENTS, enc(pid)))
+            changed = True
+        except OSError:
+            pass
+    if keep != owned:
+        with open(WM_OWNED, "w") as fh:
+            json.dump(keep, fh)
+    if changed:
+        subprocess.run(["pkill", "-USR1", "-f", "workmux _sidebar-daemon"], capture_output=True)
+
 
 def summary(panes):
     cnt = {}
@@ -585,22 +671,26 @@ def scan(soft=False):
         want = "top" if d["window_panes"] > 1 else "off"
         if d["border_status"] != want:
             add("set", "-w", "-t", d["window_id"], "pane-border-status", want)
-    by_sess = {}
+    # (2026-11-23) las pestañas tarjeta se retiraron: el estado por agente vive en el panel de workmux.
     for d in panes:
-        by_sess.setdefault(d["session"], []).append(d)
-    for s, sp in by_sess.items():
-        l0, l1 = session_lines(sp)
-        add("set", "-t", s, "@radar_l0", l0)
-        add("set", "-t", s, "@radar_l1", l1)
-        lab = sess_label(s)
-        add("set", "-t", s, "@radar_sess", lab)
-        add("set", "-t", s, "@radar_sess_blank", " " * width(lab))
+        if d["kind"] in ("srv", "down"):
+            want = srv_title(d)
+            if d["title"] != want:
+                add("select-pane", "-t", d["id"], "-T", want)
+            if d["task"] and d["srv_task"] != d["task"]:
+                add("set", "-p", "-t", d["id"], "@srv_task", d["task"])
+        elif d["srv_task"]:
+            add("set", "-pu", "-t", d["id"], "@srv_task")
     for sid in SIDEBARS:
         add("set", "-p", "-t", sid, "@pane_bar", "#[fg=%s,bold] RADAR #[default]" % C["faint"])
     add("set", "-g", "@radar_sum", summary(panes))
     add("refresh-client", "-S")
     run([TMUX, *cmds])
     log_events(panes)
+    try:
+        wm_sync(panes)
+    except Exception:
+        pass
     try:
         tmp = "%s.%d.tmp" % (STATE, os.getpid())
         with open(tmp, "w") as f:
