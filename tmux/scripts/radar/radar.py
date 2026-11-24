@@ -50,9 +50,10 @@ FIELDS = [
     "pane_current_path", "pane_width", "window_width", "window_panes", "history_size",
     "pane-border-status",
     "@claude_state", "@claude_doing", "@claude_msg", "@claude_ts", "@radar_state", "@radar_since",
-    "@srv_last_port", "@radar_unread", "@radar_sidebar", "@srv_task",
+    "@srv_last_port", "@radar_unread", "@radar_sidebar", "@srv_task", "@pane_bar",
 ]
 SIDEBARS = []  # panes de la barra lateral (se excluyen del radar)
+BARS = {}  # @pane_bar actual por pane (para no reescribirlo si no cambió)
 STATE = os.path.join(CACHE, "state.json")
 SEP = "\x1f"
 
@@ -276,7 +277,9 @@ def collect(with_screen=False):
     viewed_sessions = set(tmux("list-clients", "-F", "#{client_session}").split())
     panes, ports_needed = [], set()
     del SIDEBARS[:]
+    BARS.clear()
     for p in rows:
+        BARS[p["pane_id"]] = p["@pane_bar"]
         if p["@radar_sidebar"] == "1":
             SIDEBARS.append(p["pane_id"])
     rows = [p for p in rows if p["@radar_sidebar"] != "1"]
@@ -651,7 +654,10 @@ def scan(soft=False):
         cmds.extend(a)
 
     for d in panes:
-        add("set", "-p", "-t", d["id"], "@pane_bar", pane_bar(d))
+        # Solo si cambió: cada `set` repinta la pantalla completa de todos los clientes.
+        bar = pane_bar(d)
+        if BARS.get(d["id"]) != bar:
+            add("set", "-p", "-t", d["id"], "@pane_bar", bar)
         if d["changed"]:
             add("set", "-p", "-t", d["id"], "@radar_state", d["key"])
             add("set", "-p", "-t", d["id"], "@radar_since", str(int(d["since"])))
@@ -682,10 +688,15 @@ def scan(soft=False):
         elif d["srv_task"]:
             add("set", "-pu", "-t", d["id"], "@srv_task")
     for sid in SIDEBARS:
-        add("set", "-p", "-t", sid, "@pane_bar", "#[fg=%s,bold] RADAR #[default]" % C["faint"])
-    add("set", "-g", "@radar_sum", summary(panes))
+        bar = "#[fg=%s,bold] RADAR #[default]" % C["faint"]
+        if BARS.get(sid) != bar:
+            add("set", "-p", "-t", sid, "@pane_bar", bar)
+    sm = summary(panes)
+    if tmux("show", "-gv", "@radar_sum").rstrip("\n") != sm:
+        add("set", "-g", "@radar_sum", sm)
     add("refresh-client", "-S")
-    run([TMUX, *cmds])
+    if cmds:
+        run([TMUX, *cmds])
     log_events(panes)
     try:
         wm_sync(panes)
