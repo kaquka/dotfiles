@@ -605,6 +605,23 @@ def wm_sync(panes):
         subprocess.run(["pkill", "-USR1", "-f", "workmux _sidebar-daemon"], capture_output=True)
 
 
+def tc_reap():
+    """Cada 2 min: borra contenedores de testcontainers huérfanos (~/.config/harness/tc-reap).
+    Cubre tests corridos a mano o por arneses sin hooks; tc-reap no toca nada si hay tests corriendo."""
+    stamp = os.path.join(CACHE, "tc-reap.stamp")
+    try:
+        if time.time() - os.path.getmtime(stamp) < 120:
+            return
+    except OSError:
+        pass
+    open(stamp, "w").close()
+    try:
+        subprocess.Popen([os.path.expanduser("~/.config/harness/tc-reap"), "--bg"], stdin=subprocess.DEVNULL,
+                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    except OSError:
+        pass
+
+
 def summary(panes):
     cnt = {}
     for d in panes:
@@ -702,6 +719,7 @@ def scan(soft=False):
         wm_sync(panes)
     except Exception:
         pass
+    tc_reap()
     try:
         tmp = "%s.%d.tmp" % (STATE, os.getpid())
         with open(tmp, "w") as f:

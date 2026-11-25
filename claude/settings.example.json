@@ -92,6 +92,11 @@
             "type": "command",
             "command": "~/.config/tmux/scripts/radar/claude-state.sh stop",
             "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "~/.config/harness/tc-reap --bg",
+            "timeout": 5
           }
         ]
       },
@@ -111,6 +116,11 @@
           {
             "type": "command",
             "command": "~/.config/tmux/scripts/radar/claude-state.sh end",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "~/.config/harness/tc-reap --bg",
             "timeout": 5
           }
         ]

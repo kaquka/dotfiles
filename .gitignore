@@ -61,3 +61,4 @@ fish/conf.d/99_fig_post.fish
 tmux/plugins/
 nvim/.git
 nvim/.gitignore
+!harness/tc-reap

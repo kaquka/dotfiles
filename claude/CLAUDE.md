@@ -25,3 +25,14 @@ PRs sí se respeta y se limpia.
 - **go-lint-clean** — no romper golangci-lint antes de commitear Go. Trigger: `/go-lint-clean`.
 - **analytics-contract** — al añadir o revisar eventos de analytics (PostHog). Trigger: `/analytics-contract`.
 - **mise-setup** — crear o reformar archivos de entorno con mise. Trigger: `/mise-setup`.
+
+## Tests con contenedores (testcontainers)
+
+- Los tests de integración que levantan contenedores (MySQL, Postgres, Redis vía testcontainers)
+  se corren con paralelismo limitado: `go test -p 2 ...`. Cada paquete levanta su propio
+  contenedor; con el default salen ~10 a la vez, la VM de Colima (2 GB) los mata por memoria
+  (exit 137) y la laptop se calienta.
+- Correr solo los paquetes afectados por el cambio, no `./...` completo, salvo que se pida.
+- No dejar contenedores de prueba vivos al terminar. `~/.config/harness/tc-reap` borra los
+  huérfanos (corre solo al final de cada turno y no toca nada si hay tests corriendo);
+  `tc-reap --dry-run` muestra qué borraría. Nunca borrar contenedores que no sean de testcontainers.

@@ -1,0 +1,70 @@
+#!/bin/sh
+# tc-reap — borra los contenedores de testcontainers que ya nadie usa.
+#
+# Varios repos desactivan Ryuk (TESTCONTAINERS_RYUK_DISABLED) y, cuando un test
+# termina sin Terminate(), falla o lo matan, sus MySQL/Redis/Postgres se quedan
+# vivos en Colima comiendo RAM y CPU.
+#
+# Regla: si NO hay ningún test corriendo en la máquina, todo contenedor de
+# testcontainers con nombre aleatorio de Docker (adjetivo_apellido) es basura.
+# Los reutilizados por nombre (p. ej. merchants-test-pg-<digest>) se respetan:
+# se dejan vivos a propósito para la siguiente corrida. --all los incluye.
+#
+# Uso: tc-reap [--bg] [--dry-run] [--all]
+#   --bg       no bloquear (para hooks): se relanza en segundo plano
+#   --dry-run  solo decir qué borraría
+#   --all      incluir también los reutilizados por nombre
+# Lo llaman: hook Stop/SessionEnd de Claude, la extensión tc-reap de pi y el
+# radar de tmux (cada 2 min). Bitácora: ~/.cache/tc-reap.log
+export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
+
+bg=0 dry=0 all=0
+for a in "$@"; do
+  case "$a" in
+    --bg) bg=1 ;;
+    --dry-run) dry=1 ;;
+    --all) all=1 ;;
+  esac
+done
+
+if [ "$bg" = 1 ]; then
+  set --
+  [ "$dry" = 1 ] && set -- "$@" --dry-run
+  [ "$all" = 1 ] && set -- "$@" --all
+  nohup "$0" "$@" </dev/null >/dev/null 2>&1 &
+  exit 0
+fi
+
+say() { [ "$dry" = 1 ] && echo "$*"; }
+
+lock="${TMPDIR:-/tmp}/tc-reap.lock"
+mkdir "$lock" 2>/dev/null || exit 0
+trap 'rmdir "$lock" 2>/dev/null' EXIT INT TERM
+
+# ¿Hay algún test corriendo? (go test, binarios de test de Go —incluido el de
+# depuración __debug_bin—, y los runners habituales de otros lenguajes)
+tests=$(ps -axo pid=,args= | grep -E '(^|[ /])go test |[ ]-test\.[a-z]|(^|[ /])(vitest|jest|pytest|gradlew?|mvnw?)( |$)|bun test|cargo test' |
+  grep -v -E 'grep|tc-reap')
+if [ -n "$tests" ]; then
+  say "hay tests corriendo; no toco nada:"
+  say "$tests"
+  exit 0
+fi
+
+rows=$(docker ps -a --filter label=org.testcontainers=true --format '{{.ID}} {{.Names}} {{.Image}}' 2>/dev/null) || exit 0
+[ -n "$rows" ] || { say "no hay contenedores de testcontainers"; exit 0; }
+
+echo "$rows" | {
+  while read -r id name image; do
+    if [ "$all" = 0 ] && ! echo "$name" | grep -qE '^[a-z]+_[a-z]+[0-9]*$'; then
+      say "respeto (reutilizado por nombre): $name"
+      continue
+    fi
+    if [ "$dry" = 1 ]; then
+      say "borraría: $name ($image)"
+    else
+      docker rm -f "$id" >/dev/null 2>&1 &&
+        echo "$(date '+%F %T') borrado $name $image" >> "$HOME/.cache/tc-reap.log"
+    fi
+  done
+}
