@@ -20,6 +20,7 @@ import os
 import re
 import shutil
 import subprocess
+import threading
 import sys
 import time
 from datetime import datetime, timezone
@@ -236,7 +237,14 @@ def fetch():
             f.write(str(int(time.time())))
         cfg = config()
         known = load_json(KNOWN_F, {})
+        old = load_json(STATE_F, {})
         now = time.time()
+        # Releases en paralelo con la consulta principal, con los repos que ya conocíamos.
+        rel_repos = release_repos(cfg, known)
+        rel = {}
+        rel_t = threading.Thread(target=lambda: rel.update(raw=rel_query(rel_repos, now)), daemon=True)
+        if rel_repos:
+            rel_t.start()
         days = RECENT_DAYS if known else BOOT_DAYS
         since = datetime.fromtimestamp(now - days * 86400, timezone.utc).strftime("%Y-%m-%d")
         ids = sorted(known, key=lambda i: -(known[i].get("_first_seen") or 0))[:100]
@@ -281,18 +289,30 @@ def fetch():
                 if (n.get("author") or {}).get("login") != me:
                     prev = review.get(n["id"])
                     review[n["id"]] = slim(n, cfg) if not prev else prev
-        old = load_json(STATE_F, {})
         first = {r["id"]: r.get("_first_seen") for r in old.get("review", [])}
         for i, n in review.items():
             n["_first_seen"] = first.get(i, 0 if not old else now)
 
+        # 1) Tus PRs y reviews se guardan ya; los releases quedan como estaban.
         state = {"me": me, "fetched_at": now, "mine": list(new_known.values()),
                  "review": list(review.values()), "rate": d.get("rateLimit"),
-                 "release": fetch_releases(cfg, me, new_known, old, now)}
+                 "release": old.get("release", [])}
         save_json(STATE_F, state)
         if os.path.exists(ERROR_F):
             os.remove(ERROR_F)
         set_sum(state)
+
+        # 2) Releases: se espera la consulta paralela; si aparecieron repos nuevos se repite con todos.
+        repos_now = release_repos(cfg, new_known)
+        if rel_repos:
+            rel_t.join(70)
+        raw = rel.get("raw")
+        if not rel_repos or not set(repos_now) <= set(rel_repos):
+            raw = rel_query(repos_now, now)
+        if raw is not None:
+            state["release"] = rel_process(cfg, me, raw, old, now)
+            save_json(STATE_F, state)
+            set_sum(state)
         return 0
     except Exception as e:  # noqa: BLE001 — cualquier fallo queda visible en la barra
         os.makedirs(CACHE, exist_ok=True)
@@ -316,18 +336,25 @@ def is_release(n):
     return bool(REL_HEAD_RE.search(n.get("headRefName") or "") or REL_TITLE_RE.match(n.get("title") or ""))
 
 
-def fetch_releases(cfg, me, known, old, now):
-    """PRs de liberación/promote a main en los repos donde trabajas, que son tuyos o llevan commits tuyos."""
-    repos = sorted({n["repository"]["nameWithOwner"] for n in known.values()} | set(cfg.get("release_repos") or []))
+def release_repos(cfg, known):
+    return sorted({n["repository"]["nameWithOwner"] for n in known.values()} | set(cfg.get("release_repos") or []))
+
+
+def rel_query(repos, now):
+    """Datos crudos de la consulta de releases, o None si no hay repos o GitHub falló."""
     if not repos:
-        return old.get("release", [])
+        return None
     rq = " ".join("repo:" + r for r in repos)
     since = datetime.fromtimestamp(now - REL_DAYS * 86400, timezone.utc).strftime("%Y-%m-%d")
     try:
-        d = gql(REL_QUERY, {"open": "is:pr is:open base:main %s" % rq,
-                            "merged": "is:pr is:merged base:main merged:>=%s %s" % (since, rq)}).get("data") or {}
-    except RuntimeError:
-        return old.get("release", [])
+        return gql(REL_QUERY, {"open": "is:pr is:open base:main %s" % rq,
+                               "merged": "is:pr is:merged base:main merged:>=%s %s" % (since, rq)}).get("data") or {}
+    except (RuntimeError, subprocess.TimeoutExpired):
+        return None
+
+
+def rel_process(cfg, me, d, old, now):
+    """PRs de liberación/promote a main en los repos donde trabajas, que son tuyos o llevan commits tuyos."""
     first = {r["id"]: r.get("_first_seen") for r in old.get("release", [])}
     out = []
     for key in ("open", "merged"):

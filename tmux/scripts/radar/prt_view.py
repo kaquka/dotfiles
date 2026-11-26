@@ -85,6 +85,7 @@ class UI:
         self.tab_x = []
         self.cache = (0, None)
         self.flash = ("", 0)
+        self.pending = None   # momento en que se pidió un refresco con `r`
         self.check_request()
 
     def save(self):
@@ -409,6 +410,23 @@ def footer(ui, W, now):
     msg, until = ui.flash
     if msg and now < until:
         return mk([(" " + msg, C["approved"], False)], W)
+    # Consulta a GitHub en curso (la de `r` o la automática): se ve mientras dure.
+    try:
+        busy = now - os.path.getmtime(prt.LOCK)
+    except OSError:
+        busy = None
+    if busy is not None:
+        return mk([(" ⟳ actualizando… %ds" % busy, C["foreign"], False)], W)
+    if ui.pending:
+        if now - ui.pending < 3:   # el proceso aún no toma el lock
+            return mk([(" ⟳ actualizando…", C["foreign"], False)], W)
+        ui.pending = None
+        if os.path.exists(prt.ERROR_F):
+            with open(prt.ERROR_F) as f:
+                ui.flash = ("✗ " + f.read().strip()[:W - 4], now + 5)
+            return mk([(" " + ui.flash[0], C["changes"], False)], W)
+        ui.say("✓ actualizado")
+        return mk([(" ✓ actualizado", C["approved"], False)], W)
     st = ui.state()
     age = ""
     if st.get("fetched_at"):
@@ -484,9 +502,14 @@ def open_url(url):
 
 
 def refresh(ui):
+    if os.path.isdir(prt.LOCK):
+        ui.pending = time.time()
+        ui.say("ya se está actualizando…")
+        return
     subprocess.Popen(["/usr/bin/python3", os.path.join(os.path.dirname(os.path.abspath(__file__)), "prt.py"), "fetch"],
                      stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
-    ui.say("actualizando…")
+    ui.pending = time.time()
+    ui.flash = ("", 0)
 
 
 def selected(ui):
